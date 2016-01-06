@@ -30,9 +30,11 @@ using namespace std;
 CMutexClass::CMutexClass(void)
 :m_bCreated(TRUE)
 {
-#ifdef WINDOWS
+#if defined(WINDOWS)
    m_mutex = CreateMutex(NULL,FALSE,NULL);
    if( !m_mutex ) m_bCreated = FALSE;
+#elif defined(EMSCRIPTEN)
+   m_mutex = SDL_CreateMutex();
 #else
    pthread_mutexattr_t mattr;
 
@@ -46,9 +48,11 @@ CMutexClass::CMutexClass(void)
 
 CMutexClass::~CMutexClass(void)
 {
-#ifdef WINDOWS
+#if defined(WINDOWS)
 	WaitForSingleObject(m_mutex,INFINITE);
 	CloseHandle(m_mutex);
+#elif defined(EMSCRIPTEN)
+	SDL_DestroyMutex(m_mutex);
 #else
 	pthread_mutex_lock(&m_mutex);
 	pthread_mutex_unlock(&m_mutex); 
@@ -68,10 +72,16 @@ CMutexClass::Lock()
 {
 	ThreadId_t id = CThread::ThreadId();
 	try {
+#if !defined(EMSCRIPTEN)
+		// Emscripten has no threads so will always be equal here
 		if(CThread::ThreadIdsEqual(&m_owner,&id) )
 		    throw "\n\tthe same thread can not acquire a mutex twice!\n"; // the mutex is already locked by this thread
-#ifdef WINDOWS
+#endif
+
+#if defined(WINDOWS)
 		WaitForSingleObject(m_mutex,INFINITE);
+#elif defined(EMSCRIPTEN)
+		SDL_LockMutex(m_mutex);
 #else
 		pthread_mutex_lock(&m_mutex);
 #endif
@@ -108,8 +118,10 @@ CMutexClass::Unlock()
 		throw "\n\tonly the thread that acquires a mutex can release it!"; 
 
 	   memset(&m_owner,0,sizeof(ThreadId_t));
-#ifdef WINDOWS
+#if defined(WINDOWS)
 	   ReleaseMutex(m_mutex);
+#elif defined(EMSCRIPTEN)
+	   SDL_UnlockMutex(m_mutex);
 #else
 	   pthread_mutex_unlock(&m_mutex);
 #endif

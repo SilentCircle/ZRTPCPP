@@ -22,6 +22,10 @@
 #include <common/Thread.h>
 #include <zrtp/crypto/sha2.h>
 
+#if defined(EMSCRIPTEN)
+#include <emscripten.h>
+#endif
+
 static sha512_ctx mainCtx;
 
 static CMutexClass lockRandom;
@@ -149,7 +153,7 @@ size_t ZrtpRandom::getSystemSeed(uint8_t *seed, size_t length)
 {
     size_t num = 0;
 
-#if !(defined(_WIN32) || defined(_WIN64))
+#if !(defined(_WIN32) || defined(_WIN64) || defined(EMSCRIPTEN))
     int rnd = open("/dev/urandom", O_RDONLY);
     if (rnd >= 0) {
         num = read(rnd, seed, length);
@@ -157,6 +161,27 @@ size_t ZrtpRandom::getSystemSeed(uint8_t *seed, size_t length)
     }
     else
         return num;
+#elif defined(EMSCRIPTEN)
+    for (int i = 0; i < length; ++i) {
+        seed[i] = EM_ASM_INT_V(
+          var bytes;
+          if (typeof Module.browserifyCrypto !== 'undefined') {
+             var crypto = Module.browserifyCrypto;
+             var byte = crypto.randomByte();
+             return byte;
+          }
+          else if (typeof Module.browserCrypto !== 'undefined') {
+            bytes = new Uint8Array(1);
+            Module.browserCrypto.getRandomValues(bytes);
+          }
+          else if (ENVIRONMENT_IS_NODE) {
+             var crypto = require('crypto');
+             bytes = crypto.randomBytes(1);
+          }
+          return bytes[0];
+        );
+    }
+    num = length;
 #endif
     return num;
 }

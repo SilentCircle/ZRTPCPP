@@ -32,7 +32,9 @@
 #endif
 #endif
 
-#ifndef WINDOWS
+#if defined(EMSCRIPTEN)
+#include <SDL/SDL.h>
+#elif !defined(WINDOWS)
 #include <pthread.h>
 #endif
 #include <common/Thread.h>
@@ -42,6 +44,8 @@ class CMutexClass
 private:
 #ifdef WINDOWS
 	HANDLE m_mutex;
+#elif defined(EMSCRIPTEN)
+	SDL_mutex* m_mutex;
 #else
 	pthread_mutex_t m_mutex;
 #endif

@@ -64,6 +64,9 @@ typedef void *LPVOID;
 typedef pthread_id_np_t ThreadId_t;
 #elif defined(VMS) || defined(__NetBSD__)
 typedef pthread_t ThreadId_t;
+#elif defined(EMSCRIPTEN)
+#include <SDL/SDL.h>
+typedef SDL_threadID ThreadId_t;
 #else
 #ifdef USE_BEGIN_THREAD
 typedef unsigned ThreadId_t;
@@ -289,8 +292,10 @@ public:
 		pthread_t thread;
 #endif
 
-#ifdef WINDOWS
+#if defined(WINDOWS)
 		thisThreadsId = (ThreadId_t)GetCurrentThreadId();
+#elif defined(EMSCRIPTEN)
+		thisThreadsId = SDL_ThreadID();
 #else
 
 #if defined(AS400) || defined(OS400)
