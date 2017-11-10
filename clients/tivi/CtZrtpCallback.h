@@ -15,7 +15,7 @@
 #ifndef _CTZRTPCALLBACK_H_
 #define _CTZRTPCALLBACK_H_
 
-#include <CtZrtpSession.h>
+#include "CtZrtpSession.h"
 
 /**
  * @brief Tivi callback functions for state changes, warnings, and enrollment.
